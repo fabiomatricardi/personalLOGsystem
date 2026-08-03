@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { generateAnalysis, fetchReports, deleteReport, deleteAllReports } from '../composables/useApi.js'
+import { generateAnalysis, fetchReports, deleteReport, deleteAllReports, updateReport } from '../composables/useApi.js'
 import { marked } from 'marked'
 
 const reports = ref([])
@@ -15,6 +15,18 @@ const availableWeeks = ref([])
 const selectedYear = ref(new Date().getFullYear())
 const selectedWeek = ref(getCurrentWeek())
 
+// Multi-week date range
+const useDateRange = ref(false)
+const startDate = ref('')
+const endDate = ref('')
+
+// Custom notes
+const customNotes = ref('')
+
+// Edit mode
+const editing = ref(false)
+const editContent = ref('')
+
 function getCurrentWeek() {
   const now = new Date()
   const jan4 = new Date(now.getFullYear(), 0, 4)
@@ -24,7 +36,7 @@ function getCurrentWeek() {
 }
 
 const reportTypes = [
-  { value: 'weekly', label: 'Weekly Summary', description: 'Summary for a specific week' },
+  { value: 'weekly', label: 'Weekly Summary', description: 'Summary for a specific week or date range' },
   { value: 'comprehensive', label: 'Comprehensive Report', description: 'Full report covering all data' },
   { value: 'overdue', label: 'Overdue Tasks', description: 'Analysis of overdue items' },
   { value: 'next_steps', label: 'Next Steps', description: 'AI-suggested priorities' },
@@ -61,8 +73,17 @@ const generate = async () => {
     const request = { report_type: reportType.value }
 
     if (reportType.value === 'weekly') {
-      request.year = selectedYear.value
-      request.week_number = selectedWeek.value
+      if (useDateRange.value && startDate.value && endDate.value) {
+        request.start_date = startDate.value
+        request.end_date = endDate.value
+      } else {
+        request.year = selectedYear.value
+        request.week_number = selectedWeek.value
+      }
+    }
+
+    if (customNotes.value.trim()) {
+      request.custom_notes = customNotes.value.trim()
     }
 
     const result = await generateAnalysis(request)
@@ -78,8 +99,36 @@ const generate = async () => {
 
 const viewReport = (report) => {
   currentReport.value = report
+  editing.value = false
   error.value = null
   success.value = ''
+}
+
+const startEdit = () => {
+  editContent.value = currentReport.value.content
+  editing.value = true
+}
+
+const cancelEdit = () => {
+  editing.value = false
+  editContent.value = ''
+}
+
+const saveEdit = async () => {
+  if (!currentReport.value?.id) return
+  loading.value = true
+  error.value = null
+  try {
+    const updated = await updateReport(currentReport.value.id, { content: editContent.value })
+    currentReport.value = updated
+    editing.value = false
+    success.value = 'Report updated successfully!'
+    loadReports()
+  } catch (e) {
+    error.value = e.response?.data?.detail || e.message
+  } finally {
+    loading.value = false
+  }
 }
 
 const downloadReport = async (reportId) => {
@@ -181,20 +230,40 @@ const formatDate = (dateStr) => {
           </small>
         </div>
 
-        <div v-if="reportType === 'weekly'" style="display: flex; gap: 12px">
-          <div class="form-group" style="margin-bottom: 0; min-width: 100px">
-            <label class="form-label">Year</label>
-            <select v-model="selectedYear" class="form-select">
-              <option :value="new Date().getFullYear()">{{ new Date().getFullYear() }}</option>
-              <option :value="new Date().getFullYear() - 1">{{ new Date().getFullYear() - 1 }}</option>
-            </select>
+        <div v-if="reportType === 'weekly'">
+          <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 8px">
+            <label class="form-label" style="margin-bottom: 0">
+              <input type="checkbox" v-model="useDateRange" style="margin-right: 6px" />
+              Multi-week (Date Range)
+            </label>
           </div>
 
-          <div class="form-group" style="margin-bottom: 0; min-width: 100px">
-            <label class="form-label">Week #</label>
-            <select v-model="selectedWeek" class="form-select">
-              <option v-for="w in 52" :key="w" :value="w">Week {{ w }}</option>
-            </select>
+          <div v-if="useDateRange" style="display: flex; gap: 12px">
+            <div class="form-group" style="margin-bottom: 0">
+              <label class="form-label">Start Date</label>
+              <input type="date" v-model="startDate" class="form-input" />
+            </div>
+            <div class="form-group" style="margin-bottom: 0">
+              <label class="form-label">End Date</label>
+              <input type="date" v-model="endDate" class="form-input" />
+            </div>
+          </div>
+
+          <div v-else style="display: flex; gap: 12px">
+            <div class="form-group" style="margin-bottom: 0; min-width: 100px">
+              <label class="form-label">Year</label>
+              <select v-model="selectedYear" class="form-select">
+                <option :value="new Date().getFullYear()">{{ new Date().getFullYear() }}</option>
+                <option :value="new Date().getFullYear() - 1">{{ new Date().getFullYear() - 1 }}</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0; min-width: 100px">
+              <label class="form-label">Week #</label>
+              <select v-model="selectedWeek" class="form-select">
+                <option v-for="w in 52" :key="w" :value="w">Week {{ w }}</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -203,7 +272,7 @@ const formatDate = (dateStr) => {
         </button>
       </div>
 
-      <div v-if="availableWeeks.length > 0 && reportType === 'weekly'" style="margin-top: 16px">
+      <div v-if="availableWeeks.length > 0 && reportType === 'weekly' && !useDateRange" style="margin-top: 16px">
         <label class="form-label">Available weeks with data:</label>
         <div style="display: flex; gap: 8px; flex-wrap: wrap">
           <button
@@ -216,6 +285,17 @@ const formatDate = (dateStr) => {
             W{{ week.week }} {{ week.year }} ({{ week.count }})
           </button>
         </div>
+      </div>
+
+      <div style="margin-top: 16px">
+        <label class="form-label">Custom Notes (Markdown) - Optional</label>
+        <textarea
+          v-model="customNotes"
+          class="form-input"
+          rows="3"
+          placeholder="Add your own notes to include in the report (supports markdown)..."
+          style="resize: vertical"
+        ></textarea>
       </div>
     </div>
 
@@ -270,7 +350,14 @@ const formatDate = (dateStr) => {
           <p style="margin-top: 16px">Generating report with AI...</p>
         </div>
         <div v-else-if="currentReport">
-          <div style="display: flex; justify-content: flex-end; margin-bottom: 16px">
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 16px">
+            <button
+              v-if="currentReport.id && !editing"
+              class="btn-secondary"
+              @click="startEdit"
+            >
+              <i class="pi pi-pencil"></i> Edit Report
+            </button>
             <button
               v-if="currentReport.id"
               class="btn-secondary"
@@ -279,7 +366,26 @@ const formatDate = (dateStr) => {
               <i class="pi pi-download"></i> Download Markdown
             </button>
           </div>
-          <div class="markdown-content" v-html="renderMarkdown(currentReport.content)"></div>
+
+          <div v-if="editing" style="margin-bottom: 16px">
+            <label class="form-label">Edit Report Content (Markdown)</label>
+            <textarea
+              v-model="editContent"
+              class="form-input"
+              rows="20"
+              style="resize: vertical; font-family: monospace; font-size: 0.875rem"
+            ></textarea>
+            <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px">
+              <button class="btn-secondary" @click="cancelEdit" :disabled="loading">
+                Cancel
+              </button>
+              <button class="btn-primary" @click="saveEdit" :disabled="loading">
+                {{ loading ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+          </div>
+
+          <div v-else class="markdown-content" v-html="renderMarkdown(currentReport.content)"></div>
         </div>
         <div v-else class="empty-state">
           <i class="pi pi-chart-bar" style="font-size: 3rem; opacity: 0.5"></i>

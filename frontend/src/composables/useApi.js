@@ -67,6 +67,11 @@ export async function deleteReport(id) {
   return data
 }
 
+export async function updateReport(id, reportData) {
+  const { data } = await api.put(`/analysis/reports/${id}`, reportData)
+  return data
+}
+
 export async function deleteAllReports() {
   const { data } = await api.delete('/analysis/reports')
   return data

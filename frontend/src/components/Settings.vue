@@ -194,29 +194,29 @@ const handleShutdown = async () => {
       <h4 style="margin-bottom: 12px; color: var(--text-secondary)">Primary API</h4>
       <div class="form-group">
         <label class="form-label">Base URL</label>
-        <input v-model="settings.llm?.primary?.base_url" class="form-input" />
+        <input v-model="settings.llm.primary.base_url" class="form-input" />
       </div>
       <div class="form-group">
         <label class="form-label">API Key</label>
-        <input v-model="settings.llm?.primary?.api_key" class="form-input" type="password" />
+        <input v-model="settings.llm.primary.api_key" class="form-input" type="password" />
       </div>
       <div class="form-group">
         <label class="form-label">Model</label>
-        <input v-model="settings.llm?.primary?.model" class="form-input" />
+        <input v-model="settings.llm.primary.model" class="form-input" />
       </div>
 
       <h4 style="margin: 20px 0 12px; color: var(--text-secondary)">Fallback API</h4>
       <div class="form-group">
         <label class="form-label">Base URL</label>
-        <input v-model="settings.llm?.fallback?.base_url" class="form-input" />
+        <input v-model="settings.llm.fallback.base_url" class="form-input" />
       </div>
       <div class="form-group">
         <label class="form-label">API Key</label>
-        <input v-model="settings.llm?.fallback?.api_key" class="form-input" type="password" />
+        <input v-model="settings.llm.fallback.api_key" class="form-input" type="password" />
       </div>
       <div class="form-group">
         <label class="form-label">Model</label>
-        <input v-model="settings.llm?.fallback?.model" class="form-input" />
+        <input v-model="settings.llm.fallback.model" class="form-input" />
       </div>
 
       <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">

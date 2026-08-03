@@ -19,9 +19,8 @@ def get_week_date_range(year: int, week_number: int) -> tuple[str, str]:
     return start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')
 
 
-def get_entries_for_week(entries_list: list[dict], year: int, week_number: int) -> list[dict]:
-    """Filter entries to only those within a specific week."""
-    start_str, end_str = get_week_date_range(year, week_number)
+def get_entries_for_date_range(entries_list: list[dict], start_str: str, end_str: str) -> list[dict]:
+    """Filter entries to only those within a date range (inclusive)."""
     start_date = datetime.fromisoformat(start_str)
     end_date = datetime.fromisoformat(end_str) + timedelta(days=1)
 
@@ -38,6 +37,12 @@ def get_entries_for_week(entries_list: list[dict], year: int, week_number: int) 
     return filtered
 
 
+def get_entries_for_week(entries_list: list[dict], year: int, week_number: int) -> list[dict]:
+    """Filter entries to only those within a specific week."""
+    start_str, end_str = get_week_date_range(year, week_number)
+    return get_entries_for_date_range(entries_list, start_str, end_str)
+
+
 @router.post("/generate")
 async def generate_analysis(request: AnalysisRequest):
     try:
@@ -45,27 +50,35 @@ async def generate_analysis(request: AnalysisRequest):
         all_entries = await entries.get_all_entries(limit=500)
 
         if request.report_type == "weekly":
-            # Filter by week if specified
-            if request.year and request.week_number:
+            # Support date range for multi-week reports
+            if request.start_date and request.end_date:
+                entries_list = get_entries_for_date_range(all_entries, request.start_date, request.end_date)
+                period_label = f"{request.start_date} to {request.end_date}"
+                period_start = request.start_date
+                period_end = request.end_date
+            elif request.year and request.week_number:
                 entries_list = get_entries_for_week(all_entries, request.year, request.week_number)
-                week_label = f"Week {request.week_number}, {request.year}"
+                period_start, period_end = get_week_date_range(request.year, request.week_number)
+                period_label = f"Week {request.week_number}, {request.year}"
             else:
                 # Default to current week
                 now = datetime.now()
                 entries_list = get_entries_for_week(all_entries, now.year, now.isocalendar()[1])
-                week_label = f"Current Week (Week {now.isocalendar()[1]}, {now.year})"
+                period_start, period_end = get_week_date_range(now.year, now.isocalendar()[1])
+                period_label = f"Current Week (Week {now.isocalendar()[1]}, {now.year})"
 
             if not entries_list:
-                content = f"## {week_label}\n\nNo entries found for this period."
+                content = f"## {period_label}\n\nNo entries found for this period."
             else:
-                content = await llm_service.generate_weekly_summary(entries_list, week_label)
+                content = await llm_service.generate_weekly_summary(entries_list, period_label, request.custom_notes)
 
         elif request.report_type == "comprehensive":
-            # Generate a comprehensive report covering all data
             stats = await entries.get_dashboard_stats()
             pending = [e for e in all_entries if e.get('status') in ('PENDING', 'ASSIGNED', 'ONGOING')]
             completed = [e for e in all_entries if e.get('status') == 'COMPLETED']
-            content = await llm_service.generate_comprehensive_report(all_entries, stats, pending, completed)
+            content = await llm_service.generate_comprehensive_report(all_entries, stats, pending, completed, request.custom_notes)
+            period_start = request.start_date
+            period_end = request.end_date
 
         elif request.report_type == "overdue":
             now = datetime.now()
@@ -78,15 +91,21 @@ async def generate_analysis(request: AnalysisRequest):
                             overdue.append(e)
                     except (ValueError, TypeError):
                         continue
-            content = await llm_service.detect_overdue_tasks(overdue)
+            content = await llm_service.detect_overdue_tasks(overdue, request.custom_notes)
+            period_start = request.start_date
+            period_end = request.end_date
 
         elif request.report_type == "next_steps":
             recent = all_entries[:10]
             pending = [e for e in all_entries if e.get('status') in ('PENDING', 'ASSIGNED')]
-            content = await llm_service.suggest_next_steps(recent, pending)
+            content = await llm_service.suggest_next_steps(recent, pending, request.custom_notes)
+            period_start = request.start_date
+            period_end = request.end_date
 
         elif request.report_type == "patterns":
-            content = await llm_service.analyze_patterns(all_entries[:100])
+            content = await llm_service.analyze_patterns(all_entries[:100], request.custom_notes)
+            period_start = request.start_date
+            period_end = request.end_date
 
         else:
             raise HTTPException(status_code=400, detail="Invalid report type")
@@ -94,11 +113,6 @@ async def generate_analysis(request: AnalysisRequest):
         # Save report to database
         db = await get_db()
         try:
-            period_start = request.start_date
-            period_end = request.end_date
-            if request.report_type == "weekly" and request.year and request.week_number:
-                period_start, period_end = get_week_date_range(request.year, request.week_number)
-
             await db.execute(
                 """INSERT INTO analysis_reports (report_type, period_start, period_end, content, generated_at)
                    VALUES (?, ?, ?, ?, ?)""",
@@ -194,6 +208,36 @@ async def delete_all_reports():
         cursor = await db.execute("DELETE FROM analysis_reports")
         await db.commit()
         return {"status": "deleted", "count": cursor.rowcount}
+    finally:
+        await db.close()
+
+
+@router.put("/reports/{report_id}")
+async def update_report(report_id: int, data: dict):
+    """Update report content (for editing after generation)."""
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT * FROM analysis_reports WHERE id = ?",
+            (report_id,)
+        )
+        row = await cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Report not found")
+
+        content = data.get("content")
+        if content is None:
+            raise HTTPException(status_code=400, detail="Content is required")
+
+        await db.execute(
+            "UPDATE analysis_reports SET content = ? WHERE id = ?",
+            (content, report_id)
+        )
+        await db.commit()
+
+        cursor = await db.execute("SELECT * FROM analysis_reports WHERE id = ?", (report_id,))
+        updated = await cursor.fetchone()
+        return dict(updated)
     finally:
         await db.close()
 

@@ -56,7 +56,7 @@ async def call_llm(messages: list[dict], use_fallback: bool = False) -> str:
         raise Exception(f"LLM API error: {str(e)}")
 
 
-async def generate_weekly_summary(entries: list[dict], week_label: str = "Weekly") -> str:
+async def generate_weekly_summary(entries: list[dict], week_label: str = "Weekly", custom_notes: str = None) -> str:
     system_prompt = """You are a personal log analyst for an instrumentation engineer working on a FLNG project.
 Generate a concise weekly summary of activities in markdown format.
 
@@ -89,6 +89,12 @@ Keep the summary professional and focused on work accomplishments."""
 Period: {week_label}
 Total entries: {len(entries)}"""
 
+    if custom_notes:
+        user_prompt += f"""
+
+Additional notes from the user (include in the report):
+{custom_notes}"""
+
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt}
@@ -101,7 +107,8 @@ async def generate_comprehensive_report(
     all_entries: list[dict],
     stats: dict,
     pending: list[dict],
-    completed: list[dict]
+    completed: list[dict],
+    custom_notes: str = None
 ) -> str:
     system_prompt = """You are a personal log analyst for an instrumentation engineer on a FLNG project.
 Generate a comprehensive report covering all logged activities.
@@ -167,6 +174,12 @@ Be thorough but concise. Focus on actionable insights."""
 ## Completed Items
 {completed_summary if completed_summary else "None"}"""
 
+    if custom_notes:
+        user_prompt += f"""
+
+Additional notes from the user (include in the report):
+{custom_notes}"""
+
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt}
@@ -175,7 +188,7 @@ Be thorough but concise. Focus on actionable insights."""
     return await call_llm(messages)
 
 
-async def detect_overdue_tasks(entries: list[dict]) -> str:
+async def detect_overdue_tasks(entries: list[dict], custom_notes: str = None) -> str:
     if not entries:
         return "## Overdue Tasks\n\nNo overdue tasks found. All items are on track!"
 
@@ -211,6 +224,12 @@ Current Date: {now.strftime('%Y-%m-%d')}
 
 {entries_text}"""
 
+    if custom_notes:
+        user_prompt += f"""
+
+Additional notes from the user (include in the report):
+{custom_notes}"""
+
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt}
@@ -219,7 +238,7 @@ Current Date: {now.strftime('%Y-%m-%d')}
     return await call_llm(messages)
 
 
-async def suggest_next_steps(recent_entries: list[dict], pending_entries: list[dict]) -> str:
+async def suggest_next_steps(recent_entries: list[dict], pending_entries: list[dict], custom_notes: str = None) -> str:
     system_prompt = """You are a productivity assistant for an instrumentation engineer on an FLNG project.
 Based on recent activities and pending items, suggest prioritized next steps.
 
@@ -255,6 +274,12 @@ Be specific, actionable, and consider project context."""
 ## Pending Items
 {pending_text if pending_text else "None"}"""
 
+    if custom_notes:
+        user_prompt += f"""
+
+Additional notes from the user (include in the report):
+{custom_notes}"""
+
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt}
@@ -263,7 +288,7 @@ Be specific, actionable, and consider project context."""
     return await call_llm(messages)
 
 
-async def analyze_patterns(entries: list[dict]) -> str:
+async def analyze_patterns(entries: list[dict], custom_notes: str = None) -> str:
     system_prompt = """You are a data analyst for an instrumentation engineer.
 Identify patterns and insights from log entries.
 
@@ -296,6 +321,12 @@ Use bullet points and be concise."""
     user_prompt = f"""Analyze patterns in these {len(entries)} log entries:
 
 {entries_text}"""
+
+    if custom_notes:
+        user_prompt += f"""
+
+Additional notes from the user (include in the report):
+{custom_notes}"""
 
     messages = [
         {"role": "system", "content": system_prompt},

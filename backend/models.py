@@ -70,6 +70,7 @@ class AnalysisRequest(BaseModel):
     end_date: Optional[str] = None
     year: Optional[int] = None
     week_number: Optional[int] = None
+    custom_notes: Optional[str] = None
 
 
 class DashboardStats(BaseModel):

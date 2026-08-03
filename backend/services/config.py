@@ -54,7 +54,7 @@ DEFAULTS = {
 
 
 def get_config_path() -> Path:
-    base_dir = Path(__file__).parent.parent
+    base_dir = Path(__file__).parent.parent.parent
     return base_dir / CONFIG_FILE
 
 
