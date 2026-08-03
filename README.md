@@ -6,6 +6,8 @@ A standalone desktop application for managing personal logs, tasks, and TODO ite
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)
 
+
+<img src="https://github.com/fabiomatricardi/personalLOGsystem/raw/main/assets/personalLOG_001.png" width=900>
 ## Features
 
 - **Log Management**: Create, edit, and delete log entries with type classification (LOG, TODO, TASK)
@@ -18,8 +20,9 @@ A standalone desktop application for managing personal logs, tasks, and TODO ite
 
 ## Screenshots
 
-*Coming soon*
-
+<img src="https://github.com/fabiomatricardi/personalLOGsystem/raw/main/assets/personalLOG_002.png" width=900>
+<img src="https://github.com/fabiomatricardi/personalLOGsystem/raw/main/assets/personalLOG_003.png" width=900>
+<img src="https://github.com/fabiomatricardi/personalLOGsystem/raw/main/assets/personalLOG_004.png" width=900>
 ## Quick Start
 
 ### Prerequisites
@@ -114,6 +117,12 @@ personallog/
 └── data/                       # Runtime data (gitignored)
     └── personal_log.db         # SQLite database
 ```
+
+
+
+<img src="https://github.com/fabiomatricardi/personalLOGsystem/raw/main/assets/personalLOG_005.png" width=900>
+
+<img src="https://github.com/fabiomatricardi/personalLOGsystem/raw/main/assets/personalLOG_006.png" width=900>
 
 ## Configuration
 
