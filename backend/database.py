@@ -56,7 +56,7 @@ def get_db_path() -> str:
     global DATABASE_PATH
     if DATABASE_PATH:
         return DATABASE_PATH
-    base_dir = Path(__file__).parent.parent
+    base_dir = Path(__file__).parent
     data_dir = base_dir / "data"
     data_dir.mkdir(exist_ok=True)
     DATABASE_PATH = str(data_dir / "personal_log.db")

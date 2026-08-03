@@ -30,6 +30,23 @@ A standalone desktop application for managing personal logs, tasks, and TODO ite
 - **UV** - Python package manager (auto-installed by batch files)
 - **Node.js** - JavaScript runtime (auto-installed by batch files)
 
+### First Run
+
+1. Run `run-dev.bat` (or `run-build.bat` to build standalone executable)
+2. The app will automatically install all dependencies
+3. Browser opens to `http://localhost:5173`
+4. **Import sample data:** Go to Settings → Import Excel → select `data/personal_log_sample.xlsx`
+
+### Importing Your Data
+
+The app includes a sample Excel file at `data/personal_log_sample.xlsx`. To import it:
+
+1. Open the app
+2. Go to **Settings** tab
+3. Click **Import Excel** button
+4. Select `data/personal_log_sample.xlsx`
+5. Your data will appear in the Dashboard and Log Timeline
+
 ### Development Mode
 
 ```bash

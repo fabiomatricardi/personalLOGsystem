@@ -10,9 +10,39 @@ const success = ref('')
 const llmTestResult = ref(null)
 const llmTesting = ref(false)
 
+const DEFAULT_SETTINGS = {
+  llm: {
+    primary: { base_url: '', api_key: '', model: '' },
+    fallback: { base_url: '', api_key: '', model: '' },
+    analysis: { weekly_report_day: 'friday', auto_analyze: false, include_completed_tasks: true, summary_style: 'concise' }
+  },
+  ui: { theme: 'dark', sidebar_collapsed: false, date_format: 'YYYY-MM-DD HH:mm', items_per_page: 25 },
+  import: { excel_path: '', last_import_date: null, auto_import_on_start: false }
+}
+
 onMounted(async () => {
-  settings.value = await fetchSettings()
-  dbInfo.value = await fetchDatabaseInfo()
+  try {
+    const data = await fetchSettings()
+    settings.value = {
+      ...DEFAULT_SETTINGS,
+      ...data,
+      llm: {
+        ...DEFAULT_SETTINGS.llm,
+        ...(data.llm || {}),
+        primary: { ...DEFAULT_SETTINGS.llm.primary, ...(data.llm?.primary || {}) },
+        fallback: { ...DEFAULT_SETTINGS.llm.fallback, ...(data.llm?.fallback || {}) },
+        analysis: { ...DEFAULT_SETTINGS.llm.analysis, ...(data.llm?.analysis || {}) }
+      }
+    }
+  } catch (e) {
+    settings.value = DEFAULT_SETTINGS
+    error.value = 'Failed to load settings: ' + e.message
+  }
+  try {
+    dbInfo.value = await fetchDatabaseInfo()
+  } catch (e) {
+    console.error('Failed to load database info:', e)
+  }
 })
 
 const saveSettings = async () => {
@@ -164,29 +194,29 @@ const handleShutdown = async () => {
       <h4 style="margin-bottom: 12px; color: var(--text-secondary)">Primary API</h4>
       <div class="form-group">
         <label class="form-label">Base URL</label>
-        <input v-model="settings.llm.primary.base_url" class="form-input" />
+        <input v-model="settings.llm?.primary?.base_url" class="form-input" />
       </div>
       <div class="form-group">
         <label class="form-label">API Key</label>
-        <input v-model="settings.llm.primary.api_key" class="form-input" type="password" />
+        <input v-model="settings.llm?.primary?.api_key" class="form-input" type="password" />
       </div>
       <div class="form-group">
         <label class="form-label">Model</label>
-        <input v-model="settings.llm.primary.model" class="form-input" />
+        <input v-model="settings.llm?.primary?.model" class="form-input" />
       </div>
 
       <h4 style="margin: 20px 0 12px; color: var(--text-secondary)">Fallback API</h4>
       <div class="form-group">
         <label class="form-label">Base URL</label>
-        <input v-model="settings.llm.fallback.base_url" class="form-input" />
+        <input v-model="settings.llm?.fallback?.base_url" class="form-input" />
       </div>
       <div class="form-group">
         <label class="form-label">API Key</label>
-        <input v-model="settings.llm.fallback.api_key" class="form-input" type="password" />
+        <input v-model="settings.llm?.fallback?.api_key" class="form-input" type="password" />
       </div>
       <div class="form-group">
         <label class="form-label">Model</label>
-        <input v-model="settings.llm.fallback.model" class="form-input" />
+        <input v-model="settings.llm?.fallback?.model" class="form-input" />
       </div>
 
       <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
