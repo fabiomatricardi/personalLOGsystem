@@ -9,14 +9,39 @@ import subprocess
 APP_NAME = "PersonalLogManager"
 MAIN_ENTRY = "backend/main.py"
 
+IS_WINDOWS = sys.platform == "win32"
+
+
+def find_npm():
+    """Find npm executable, checking common Windows locations."""
+    npm = shutil.which("npm")
+    if npm:
+        return npm
+    # Check common Windows install paths
+    for base in [
+        os.path.expandvars(r"%ProgramFiles%\nodejs"),
+        os.path.expandvars(r"%ProgramFiles(x86)%\nodejs"),
+        os.path.expandvars(r"%APPDATA%\npm"),
+    ]:
+        candidate = os.path.join(base, "npm.cmd")
+        if os.path.isfile(candidate):
+            return candidate
+        candidate = os.path.join(base, "npm.exe")
+        if os.path.isfile(candidate):
+            return candidate
+    return "npm"
+
 
 def build():
     for d in ["build", "dist"]:
         if os.path.exists(d):
             shutil.rmtree(d)
 
-    subprocess.run(["npm", "install"], cwd="frontend", check=True)
-    subprocess.run(["npm", "run", "build"], cwd="frontend", check=True)
+    npm = find_npm()
+    print(f"Using npm: {npm}")
+
+    subprocess.run([npm, "install"], cwd="frontend", check=True, shell=IS_WINDOWS)
+    subprocess.run([npm, "run", "build"], cwd="frontend", check=True, shell=IS_WINDOWS)
 
     backend_packages = []
     for item in os.listdir("backend"):

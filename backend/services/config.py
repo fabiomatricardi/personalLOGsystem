@@ -3,6 +3,7 @@ Configuration management service.
 """
 import json
 import os
+import sys
 from pathlib import Path
 
 CONFIG_FILE = "config.json"
@@ -53,18 +54,29 @@ DEFAULTS = {
 }
 
 
+def _get_app_base_dir() -> Path:
+    """Get the app base directory (next to executable or project root)."""
+    if getattr(sys, 'frozen', False):
+        return Path(os.path.dirname(sys.executable))
+    else:
+        return Path(__file__).parent.parent.parent
+
+
 def get_config_path() -> Path:
-    base_dir = Path(__file__).parent.parent.parent
+    base_dir = _get_app_base_dir()
     return base_dir / CONFIG_FILE
 
 
 def load_config() -> dict:
     config_path = get_config_path()
     if config_path.exists():
-        with open(config_path, "r", encoding="utf-8") as f:
-            saved = json.load(f)
-        config = _deep_merge(DEFAULTS, saved)
-        return config
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+            config = _deep_merge(DEFAULTS, saved)
+            return config
+        except Exception:
+            return DEFAULTS.copy()
     return DEFAULTS.copy()
 
 

@@ -3,6 +3,7 @@ SQLite database connection and schema management.
 """
 import aiosqlite
 import os
+import sys
 from pathlib import Path
 
 DATABASE_PATH = None
@@ -52,11 +53,22 @@ CREATE INDEX IF NOT EXISTS idx_log_entries_reference_id ON log_entries(reference
 """
 
 
+def _get_app_base_dir() -> Path:
+    """Get the app base directory (next to executable or project root)."""
+    if getattr(sys, 'frozen', False):
+        # Running as PyInstaller executable - use exe directory
+        return Path(os.path.dirname(sys.executable))
+    else:
+        # Running in development - use project root (parent of backend/)
+        return Path(__file__).parent.parent
+
+
 def get_db_path() -> str:
     global DATABASE_PATH
     if DATABASE_PATH:
         return DATABASE_PATH
-    base_dir = Path(__file__).parent.parent
+
+    base_dir = _get_app_base_dir()
     data_dir = base_dir / "data"
     data_dir.mkdir(exist_ok=True)
     DATABASE_PATH = str(data_dir / "personal_log.db")
