@@ -2,15 +2,26 @@
 import { ref, onMounted } from 'vue'
 import { fetchSettings, updateSettings, importExcel, exportExcel, backupDatabase, restoreDatabase, fetchDatabaseInfo, shutdownApp } from '../composables/useApi.js'
 
-const settings = ref({})
+const settings = ref({
+  app: { name: 'Personal Log Manager', version: '1.0.0', port: 8000, data_dir: './data', db_path: './data/personal_log.db', log_level: 'INFO' },
+  llm: {
+    primary: { base_url: '', api_key: '', model: '' },
+    fallback: { base_url: '', api_key: '', model: '' },
+    analysis: { weekly_report_day: 'friday', auto_analyze: false, include_completed_tasks: true, summary_style: 'concise' }
+  },
+  ui: { theme: 'dark', sidebar_collapsed: false, date_format: 'YYYY-MM-DD HH:mm', items_per_page: 25 },
+  import: { excel_path: '', last_import_date: null, auto_import_on_start: false }
+})
 const dbInfo = ref(null)
 const loading = ref(false)
 const error = ref(null)
 const success = ref('')
 const llmTestResult = ref(null)
 const llmTesting = ref(false)
+const originalPort = ref(8000)
 
 const DEFAULT_SETTINGS = {
+  app: { name: 'Personal Log Manager', version: '1.0.0', port: 8000, data_dir: './data', db_path: './data/personal_log.db', log_level: 'INFO' },
   llm: {
     primary: { base_url: '', api_key: '', model: '' },
     fallback: { base_url: '', api_key: '', model: '' },
@@ -26,6 +37,10 @@ onMounted(async () => {
     settings.value = {
       ...DEFAULT_SETTINGS,
       ...data,
+      app: {
+        ...DEFAULT_SETTINGS.app,
+        ...(data.app || {})
+      },
       llm: {
         ...DEFAULT_SETTINGS.llm,
         ...(data.llm || {}),
@@ -34,6 +49,7 @@ onMounted(async () => {
         analysis: { ...DEFAULT_SETTINGS.llm.analysis, ...(data.llm?.analysis || {}) }
       }
     }
+    originalPort.value = settings.value.app.port
   } catch (e) {
     settings.value = DEFAULT_SETTINGS
     error.value = 'Failed to load settings: ' + e.message
@@ -46,11 +62,25 @@ onMounted(async () => {
 })
 
 const saveSettings = async () => {
+  if (settings.value.app.port < 1024) {
+    error.value = 'Port must be 1024 or higher (ports below 1024 require admin privileges)'
+    return
+  }
+
   loading.value = true
   error.value = null
+  const portChanged = settings.value.app.port !== originalPort.value
   try {
     await updateSettings(settings.value)
     success.value = 'Settings saved successfully'
+    if (portChanged) {
+      if (confirm('Port changed. The application needs to restart. Restart now?')) {
+        await shutdownApp()
+        success.value = 'Application shut down. Please relaunch the executable.'
+      } else {
+        success.value = 'Settings saved. Port will take effect on next restart.'
+      }
+    }
   } catch (e) {
     error.value = e.message
   } finally {
@@ -185,6 +215,17 @@ const handleShutdown = async () => {
             <input type="file" accept=".db" @change="handleRestore" style="display: none" />
           </label>
         </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: 16px">Application</h3>
+      <div class="form-group">
+        <label class="form-label">Server Port</label>
+        <input v-model.number="settings.app.port" class="form-input" type="number" min="1024" max="65535" />
+        <small style="color: var(--text-secondary); margin-top: 4px; display: block;">
+          Port for the backend server. Requires restart to take effect.
+        </small>
       </div>
     </div>
 

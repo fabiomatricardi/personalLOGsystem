@@ -12,6 +12,7 @@ DEFAULTS = {
     "app": {
         "name": "Personal Log Manager",
         "version": "1.0.0",
+        "port": 8000,
         "data_dir": "./data",
         "db_path": "./data/personal_log.db",
         "log_level": "INFO"

@@ -17,6 +17,7 @@ A standalone desktop application for managing personal logs, tasks, and TODO ite
 - **LLM Analysis**: AI-powered weekly summaries, overdue detection, next steps suggestions, and pattern analysis
 - **Primary/Fallback LLM**: Configurable API with automatic failover between primary and fallback LLM providers
 - **Report Export**: Download generated reports as Markdown files
+- **Configurable Port**: Server port can be configured via Settings UI or config.json, with automatic fallback if port is blocked
 
 ## Screenshots
 
@@ -144,6 +145,26 @@ personallog/
 ## Configuration
 
 The app uses a `config.json` file for configuration. It's automatically created on first run with default values.
+
+### Port Configuration
+
+The server port can be configured in two ways:
+
+1. **Settings UI**: Go to Settings → Application → Server Port
+2. **config.json**: Edit the `app.port` field
+
+```json
+{
+  "app": {
+    "name": "Personal Log Manager",
+    "port": 8000
+  }
+}
+```
+
+If the configured port is unavailable, the app will automatically try alternative ports (8001, 8002, 8003, 5000, 3000, 18080, 28080).
+
+**Note**: Port changes require a restart to take effect.
 
 ### LLM Configuration
 

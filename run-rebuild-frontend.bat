@@ -26,12 +26,20 @@ echo.
 :: ============================================
 :: STEP 2: Start backend
 :: ============================================
-echo [2/2] Starting backend server on port 8000...
+
+:: Read port from config.json
+set PORT=8000
+if exist config.json (
+    for /f "tokens=*" %%i in ('powershell -Command "(Get-Content config.json | ConvertFrom-Json).app.port"') do set PORT=%%i
+)
+if "%PORT%"=="" set PORT=8000
+
+echo [2/2] Starting backend server on port %PORT%...
 echo.
-echo   App: http://localhost:8000
+echo   App: http://localhost:%PORT%
 echo.
 echo Opening browser...
-start http://localhost:8000
+start http://localhost:%PORT%
 echo.
 echo Press Ctrl+C to stop the server
 echo.

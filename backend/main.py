@@ -6,6 +6,7 @@ import os
 import logging
 import threading
 import time
+import socket
 
 # Determine base directory for the app
 if getattr(sys, 'frozen', False):
@@ -47,6 +48,20 @@ from backend.routers import entries, tags, analysis, import_export, settings
 
 server_shutdown = False
 
+PORT_FALLBACKS = [8001, 8002, 8003, 5000, 3000, 18080, 28080]
+
+
+def find_available_port(preferred: int) -> int:
+    """Try preferred port, then fallback to alternatives."""
+    for port in [preferred] + PORT_FALLBACKS:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(("127.0.0.1", port))
+                return port
+            except OSError:
+                continue
+    return preferred
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -65,8 +80,9 @@ async def lifespan(app: FastAPI):
 
     if os.path.isdir(frontend_dist):
         import webbrowser
+        port = getattr(app.state, 'port', 8000)
         logger.info("Opening browser...")
-        webbrowser.open("http://localhost:8000")
+        webbrowser.open(f"http://localhost:{port}")
     else:
         logger.warning("Frontend dist not found!")
 
@@ -135,5 +151,14 @@ if __name__ == "__main__":
         sys.stdout = log_stream
         sys.stderr = log_stream
 
-    logger.info("Starting uvicorn server on port 8000...")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    from backend.services.config import load_config
+    config = load_config()
+    preferred_port = config.get("app", {}).get("port", 8000)
+    port = find_available_port(preferred_port)
+
+    if port != preferred_port:
+        logger.warning(f"Port {preferred_port} unavailable, using port {port}")
+
+    app.state.port = port
+    logger.info(f"Starting uvicorn server on port {port}...")
+    uvicorn.run(app, host="127.0.0.1", port=port)

@@ -51,6 +51,8 @@ def build():
     data_args = []
     if os.path.isdir("frontend/dist"):
         data_args += ["--add-data", "frontend/dist;frontend/dist"]
+    if os.path.isfile("config.json"):
+        data_args += ["--add-data", "config.json;."]
 
     hidden_imports = [
         "uvicorn.logging",
@@ -89,6 +91,11 @@ def build():
     print(f"Building {APP_NAME}.exe ...")
     subprocess.run(cmd, check=True)
     print(f"Done: dist/{APP_NAME}.exe")
+
+    if os.path.isfile("config.json"):
+        dist_config = os.path.join("dist", "config.json")
+        shutil.copy2("config.json", dist_config)
+        print(f"Copied config.json to dist/")
 
 
 if __name__ == "__main__":

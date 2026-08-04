@@ -142,6 +142,13 @@ echo   All dependencies installed successfully!
 echo ============================================
 echo.
 
+:: Read port from config.json
+set PORT=8000
+if exist config.json (
+    for /f "tokens=*" %%i in ('powershell -Command "(Get-Content config.json | ConvertFrom-Json).app.port"') do set PORT=%%i
+)
+if "%PORT%"=="" set PORT=8000
+
 :: Start Vite dev server in background
 echo Starting Vite dev server on port 5173...
 start "Vite Dev Server" cmd /c "cd frontend && npx vite --port 5173"
@@ -150,9 +157,9 @@ start "Vite Dev Server" cmd /c "cd frontend && npx vite --port 5173"
 timeout /t 3 /nobreak >nul
 
 :: Start backend in foreground
-echo Starting backend server on port 8000...
+echo Starting backend server on port %PORT%...
 echo   Frontend: http://localhost:5173
-echo   Backend:  http://localhost:8000
+echo   Backend:  http://localhost:%PORT%
 echo.
 echo Opening browser...
 start http://localhost:5173
