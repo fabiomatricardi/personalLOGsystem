@@ -5,6 +5,8 @@ import { fetchSettings, updateSettings, importExcel, exportExcel, backupDatabase
 const settings = ref({
   app: { name: 'Personal Log Manager', version: '1.0.0', port: 8000, data_dir: './data', db_path: './data/personal_log.db', log_level: 'INFO' },
   llm: {
+    verify_ssl: true,
+    ca_bundle: '',
     primary: { base_url: '', api_key: '', model: '' },
     fallback: { base_url: '', api_key: '', model: '' },
     analysis: { weekly_report_day: 'friday', auto_analyze: false, include_completed_tasks: true, summary_style: 'concise' }
@@ -23,6 +25,8 @@ const originalPort = ref(8000)
 const DEFAULT_SETTINGS = {
   app: { name: 'Personal Log Manager', version: '1.0.0', port: 8000, data_dir: './data', db_path: './data/personal_log.db', log_level: 'INFO' },
   llm: {
+    verify_ssl: true,
+    ca_bundle: '',
     primary: { base_url: '', api_key: '', model: '' },
     fallback: { base_url: '', api_key: '', model: '' },
     analysis: { weekly_report_day: 'friday', auto_analyze: false, include_completed_tasks: true, summary_style: 'concise' }
@@ -258,6 +262,24 @@ const handleShutdown = async () => {
       <div class="form-group">
         <label class="form-label">Model</label>
         <input v-model="settings.llm.fallback.model" class="form-input" />
+      </div>
+
+      <h4 style="margin: 20px 0 12px; color: var(--text-secondary)">SSL Settings</h4>
+      <div class="form-group">
+        <label class="form-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+          <input type="checkbox" v-model="settings.llm.verify_ssl" style="width: 16px; height: 16px;" />
+          Verify SSL Certificates
+        </label>
+        <small style="color: var(--text-secondary); margin-top: 4px; display: block;">
+          Disable if behind corporate firewall with SSL inspection
+        </small>
+      </div>
+      <div v-if="settings.llm.verify_ssl" class="form-group">
+        <label class="form-label">CA Bundle Path (optional)</label>
+        <input v-model="settings.llm.ca_bundle" class="form-input" placeholder="Leave empty for system default" />
+        <small style="color: var(--text-secondary); margin-top: 4px; display: block;">
+          Path to custom CA certificate file for corporate networks
+        </small>
       </div>
 
       <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">

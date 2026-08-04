@@ -2,12 +2,6 @@
 
 A standalone desktop application for managing personal logs, tasks, and TODO items with AI-powered analysis capabilities.
 
-![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
-![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)
-
-
-<img src="https://github.com/fabiomatricardi/personalLOGsystem/raw/main/assets/personalLOG_001.png" width=900>
 ## Features
 
 - **Log Management**: Create, edit, and delete log entries with type classification (LOG, TODO, TASK)
@@ -16,14 +10,15 @@ A standalone desktop application for managing personal logs, tasks, and TODO ite
 - **Excel Import**: Import existing data from Excel files
 - **LLM Analysis**: AI-powered weekly summaries, overdue detection, next steps suggestions, and pattern analysis
 - **Primary/Fallback LLM**: Configurable API with automatic failover between primary and fallback LLM providers
-- **Report Export**: Download generated reports as Markdown files
 - **Configurable Port**: Server port can be configured via Settings UI or config.json, with automatic fallback if port is blocked
 
-## Screenshots
+## Tech Stack
 
-<img src="https://github.com/fabiomatricardi/personalLOGsystem/raw/main/assets/personalLOG_002.png" width=900>
-<img src="https://github.com/fabiomatricardi/personalLOGsystem/raw/main/assets/personalLOG_003.png" width=900>
-<img src="https://github.com/fabiomatricardi/personalLOGsystem/raw/main/assets/personalLOG_004.png" width=900>
+- **Backend**: Python 3.12 + FastAPI + SQLite
+- **Frontend**: Vue.js 3 + PrimeVue + Vite
+- **Package Manager**: UV (Python) + npm (Node.js)
+- **Build**: PyInstaller for standalone executable
+
 ## Quick Start
 
 ### Prerequisites
@@ -31,31 +26,10 @@ A standalone desktop application for managing personal logs, tasks, and TODO ite
 - **UV** - Python package manager (auto-installed by batch files)
 - **Node.js** - JavaScript runtime (auto-installed by batch files)
 
-### First Run
-
-1. Run `run-dev.bat` (or `run-build.bat` to build standalone executable)
-2. The app will automatically install all dependencies
-3. Browser opens to `http://localhost:5173`
-4. **Import sample data:** Go to Settings → Import Excel → select `data/personal_log_sample.xlsx`
-
-### Importing Your Data
-
-The app includes a sample Excel file at `data/personal_log_sample.xlsx`. To import it:
-
-1. Open the app
-2. Go to **Settings** tab
-3. Click **Import Excel** button
-4. Select `data/personal_log_sample.xlsx`
-5. Your data will appear in the Dashboard and Log Timeline
-
 ### Development Mode
 
 ```bash
-# Clone the repository
-git clone https://github.com/fabio-matricardi/personallog.git
-cd personallog
-
-# Windows - Run development mode
+# Windows
 run-dev.bat
 
 # The app will be available at:
@@ -66,25 +40,18 @@ run-dev.bat
 ### Build Executable
 
 ```bash
-# Windows - Build standalone executable
+# Windows
 run-build.bat
 
 # The executable will be created at:
 # dist/PersonalLogManager.exe
 ```
 
-## Tech Stack
-
-- **Backend**: Python 3.12 + FastAPI + SQLite
-- **Frontend**: Vue.js 3 + PrimeVue + Vite
-- **Package Manager**: UV (Python) + npm (Node.js)
-- **Build**: PyInstaller for standalone executable
-
 ## Project Structure
 
 ```
 personallog/
-├── pyproject.toml              # Python project config (requires Python 3.12+)
+├── pyproject.toml              # Python project config
 ├── uv.lock                     # Lockfile
 ├── build.py                    # PyInstaller build script
 ├── config.json                 # App configuration (auto-generated)
@@ -136,12 +103,6 @@ personallog/
     └── personal_log.db         # SQLite database
 ```
 
-
-
-<img src="https://github.com/fabiomatricardi/personalLOGsystem/raw/main/assets/personalLOG_005.png" width=900>
-
-<img src="https://github.com/fabiomatricardi/personalLOGsystem/raw/main/assets/personalLOG_006.png" width=900>
-
 ## Configuration
 
 The app uses a `config.json` file for configuration. It's automatically created on first run with default values.
@@ -168,15 +129,15 @@ If the configured port is unavailable, the app will automatically try alternativ
 
 ### LLM Configuration
 
-Configure your LLM API in the Settings tab:
+Configure your LLM API in the Settings tab or edit `config.json`:
 
 ```json
 {
   "llm": {
     "primary": {
-      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+      "base_url": "https://api.openai.com/v1",
       "api_key": "your-api-key",
-      "model": "gemini-2.0-flash"
+      "model": "gpt-4"
     },
     "fallback": {
       "base_url": "https://api.anthropic.com/v1",
@@ -187,14 +148,48 @@ Configure your LLM API in the Settings tab:
 }
 ```
 
-### Supported LLM Providers
+### SSL Configuration (Corporate Networks)
 
-- **Google Gemini** (via OpenAI-compatible endpoint)
-- **OpenAI** (GPT-4, GPT-3.5)
-- **Anthropic** (Claude)
-- Any OpenAI-compatible API
+If you're behind a corporate firewall with SSL inspection, you may encounter `SSL: CERTIFICATE_VERIFY_FAILED` errors when connecting to LLM APIs.
+
+**Option 1: Disable SSL Verification (Quick Fix)**
+
+1. Go to **Settings** → **LLM Configuration** → **SSL Settings**
+2. **Uncheck** "Verify SSL Certificates"
+3. Click **Save Settings**
+
+**Option 2: Use Custom CA Bundle (More Secure)**
+
+1. Get the corporate CA certificate file from your IT department
+2. Go to **Settings** → **LLM Configuration** → **SSL Settings**
+3. Enter the path in "CA Bundle Path" field
+4. Keep "Verify SSL Certificates" checked
+
+Or configure in `config.json`:
+
+```json
+{
+  "llm": {
+    "verify_ssl": false,
+    "ca_bundle": ""
+  }
+}
+```
 
 ## Database Portability
+
+### Edit Entries
+
+Click any entry in the Log Timeline to open the edit modal. You can:
+
+- Modify the activity description
+- Change the type (LOG, TODO, TASK)
+- Update the status (PENDING, ASSIGNED, ONGOING, COMPLETED)
+- Set or change the ETA
+- Add follow-up notes
+- Delete the entry
+
+**Note**: The entry ID and timestamp are not editable (they are system-assigned).
 
 ### Export Database
 
@@ -253,36 +248,6 @@ npm run dev
 npm run build
 ```
 
-## Report Types
-
-- **Weekly Summary**: AI-generated summary for a specific week
-- **Comprehensive Report**: Full report with statistics and insights
-- **Overdue Tasks**: Analysis of items past their due date
-- **Next Steps**: AI-suggested priorities based on recent activity
-- **Pattern Analysis**: Work pattern insights and trends
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Author
-
-**Fabio Matricardi**
-- Email: fabio.matricardi@gmail.com
-- GitHub: [fabio-matricardi](https://github.com/fabio-matricardi)
-
-## Acknowledgments
-
-- Built with [FastAPI](https://fastapi.tiangolo.com/)
-- Frontend powered by [Vue.js](https://vuejs.org/) and [PrimeVue](https://primevue.org/)
-- Package management by [UV](https://github.com/astral-sh/uv)
+MIT

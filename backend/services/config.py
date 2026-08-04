@@ -18,6 +18,8 @@ DEFAULTS = {
         "log_level": "INFO"
     },
     "llm": {
+        "verify_ssl": True,
+        "ca_bundle": "",
         "primary": {
             "enabled": True,
             "base_url": "https://api.openai.com/v1",

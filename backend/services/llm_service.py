@@ -19,8 +19,22 @@ async def call_llm(messages: list[dict], use_fallback: bool = False) -> str:
     base_url = llm_config.get("base_url", "").rstrip("/")
     api_key = llm_config["api_key"]
 
+    # SSL verification settings
+    verify_ssl = config["llm"].get("verify_ssl", True)
+    ca_bundle = config["llm"].get("ca_bundle", "")
+
+    if not verify_ssl:
+        ssl_verify = False
+    elif ca_bundle:
+        ssl_verify = ca_bundle
+    else:
+        ssl_verify = True
+
     try:
-        async with httpx.AsyncClient(timeout=llm_config.get("timeout", 60)) as client:
+        async with httpx.AsyncClient(
+            timeout=llm_config.get("timeout", 60),
+            verify=ssl_verify
+        ) as client:
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
